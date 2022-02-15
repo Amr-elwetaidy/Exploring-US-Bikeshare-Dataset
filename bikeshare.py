@@ -1,10 +1,15 @@
+from sys import exit
 import time
 import pandas as pd
-import numpy as np
 
-CITY_DATA = { 'chicago': 'chicago.csv',
-              'new york city': 'new_york_city.csv',
-              'washington': 'washington.csv' }
+CITY_DATA = {'chicago': 'chicago.csv',
+             'new york city': 'new_york_city.csv',
+             'washington': 'washington.csv'}
+
+MONTHS = ['january', 'february', 'march', 'april', 'may', 'june']
+DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+I_HAVE_BEEN_CALLED = [False, False, False]
+
 
 def get_filters():
     """
@@ -15,17 +20,43 @@ def get_filters():
         (str) month - name of the month to filter by, or "all" to apply no month filter
         (str) day - name of the day of week to filter by, or "all" to apply no day filter
     """
-    print('Hello! Let\'s explore some US bikeshare data!')
-    # get user input for city (chicago, new york city, washington). HINT: Use a while loop to handle invalid inputs
+    print('\n* Hello! Let\'s explore some US bikeshare data!\n', '-' * 40, '\n')
+    print('* Note: you can use 3 letter abbreviation (e.g., chi=chicago, mar=march, mon=monday)\n')
+    # TO DO: get user input for city (chicago, new york city, washington). HINT: Use a while loop to handle invalid inputs
+    while True:
+        city = input('Choose a city to analyze (chicago, new york, washington): ').lower().strip()
+        for C in CITY_DATA:
+            if (city in C) and (len(city) >= 3) and (city[0:3] in C[0:3]):
+                city = C
+                break
+        if city in CITY_DATA:
+            break
 
+    # TO DO: get user input for month (all, january, february, ... , june)
+    while True:
+        month = input('Enter the name of the month to filter by, or "all" to apply no month filter: ').lower().strip()
+        if month == 'all':
+            break
+        for M in MONTHS:
+            if (month in M) and (len(month) >= 3) and (month[0:3] in M[0:3]):
+                month = M
+                break
+        if month in MONTHS:
+            break
 
-    # get user input for month (all, january, february, ... , june)
+    # TO DO: get user input for day of week (all, monday, tuesday, ... sunday)
+    while True:
+        day = input('Enter the name of the day of week to filter by, or "all" to apply no day filter: ').lower().strip()
+        if day == 'all':
+            break
+        for D in DAYS:
+            if (day in D) and (len(day) >= 3) and (day[0:3] in D[0:3]):
+                day = D
+                break
+        if day in DAYS:
+            break
 
-
-    # get user input for day of week (all, monday, tuesday, ... sunday)
-
-
-    print('-'*40)
+    print('-' * 40)
     return city, month, day
 
 
@@ -40,82 +71,159 @@ def load_data(city, month, day):
     Returns:
         df - Pandas DataFrame containing city data filtered by month and day
     """
+    df = pd.read_csv(CITY_DATA[city])
 
+    df['Start Time'] = pd.to_datetime(df['Start Time'])
+
+    df['month'] = pd.to_datetime(df['Start Time']).dt.month
+    df['day_of_week'] = pd.to_datetime(df['Start Time']).dt.dayofweek
+    df['start_hour'] = pd.to_datetime(df['Start Time']).dt.hour
+
+    # filter by month if applicable
+    if month != 'all':
+        # use the index of the months list to get the corresponding int
+        month = MONTHS.index(month) + 1
+
+        # filter by month to create the new dataframe
+        df = df[df['month'] == month]
+
+    # filter by day of week if applicable
+    if day != 'all':
+        # use the index of the days list to get the corresponding int
+        day = DAYS.index(day) + 1
+
+        # filter by day of week to create the new dataframe
+        df = df[df['day_of_week'] == day]
 
     return df
 
 
-def time_stats(df):
+def time_stats(df, city, month, day):
     """Displays statistics on the most frequent times of travel."""
 
-    print('\nCalculating The Most Frequent Times of Travel...\n')
+    print('\n* Calculating The Most Frequent Times of Travel...\n')
     start_time = time.time()
 
-    # display the most common month
+    if month == 'all' and day == 'all':
+        print(f'Filters: City->{city}, Month->all, Day->all\n')
+    elif month == 'all':
+        print(f'Filters: City->{city}, Month->all, Day->{DAYS[df["day_of_week"].mode()[0] - 1]}\n')
+    elif day == 'all':
+        print(f'Filters: City->{city}, Month->{MONTHS[df["month"].mode()[0] - 1]}, Day->all\n')
+    else:
+        print(f'Filters: City->{city}, Month->{MONTHS[df["month"].mode()[0] - 1]}, Day->{DAYS[df["day_of_week"].mode()[0] - 1]}\n')
+
+    # TO DO: display the most common month
+    if month == 'all':
+        print(f'Most popular month\t: {MONTHS[df["month"].mode()[0] - 1]}\t\tWith count: {df["month"].value_counts().max()}')
+
+    # TO DO: display the most common day of week
+    if day == 'all':
+        print(f'Most popular day\t: {DAYS[df["day_of_week"].mode()[0] - 1]}\tWith count: {df["day_of_week"].value_counts().max()}')
+
+    # TO DO: display the most common start hour
+    print(f'Most popular hour\t: {df["start_hour"].mode()[0]}:00\t\tWith count: {df["start_hour"].value_counts().max()}')
+
+    t1 = time.time() - start_time
+    print("\nThis took %s seconds." % t1)
+    print('-' * 40)
+    return t1
 
 
-    # display the most common day of week
-
-
-    # display the most common start hour
-
-
-    print("\nThis took %s seconds." % (time.time() - start_time))
-    print('-'*40)
-
-
-def station_stats(df):
+def station_stats(df, city, month, day):
     """Displays statistics on the most popular stations and trip."""
 
-    print('\nCalculating The Most Popular Stations and Trip...\n')
+    print('\n* Calculating The Most Popular Stations and Trip...\n')
     start_time = time.time()
 
-    # display most commonly used start station
+    if month == 'all' and day == 'all':
+        print(f'Filters: City->{city}, Month->all, Day->all\n')
+    elif month == 'all':
+        print(f'Filters: City->{city}, Month->all, Day->{DAYS[df["day_of_week"].mode()[0] - 1]}\n')
+    elif day == 'all':
+        print(f'Filters: City->{city}, Month->{MONTHS[df["month"].mode()[0] - 1]}, Day->all\n')
+    else:
+        print(f'Filters: City->{city}, Month->{MONTHS[df["month"].mode()[0] - 1]}, Day->{DAYS[df["day_of_week"].mode()[0] - 1]}\n')
+
+    # TO DO: display most commonly used start station
+    print(f'Most popular start station\t\t: {df["Start Station"].mode()[0]}\t\tWith count: {df["Start Station"].value_counts().max()}')
+
+    # TO DO: display most commonly used end station
+    print(f'Most popular end station\t\t: {df["End Station"].mode()[0]}\t\tWith count: {df["End Station"].value_counts().max()}')
+
+    # TO DO: display most frequent combination of start station and end station trip
+    print(f'Most popular start-end stations\t: {df[df["Start Station"] == df["End Station"]]["Start Station"].mode()[0]}\t\tWith count: {df[df["Start Station"] == df["End Station"]]["Start Station"].value_counts().max()}')
+
+    t2 = time.time() - start_time
+    print("\nThis took %s seconds." % t2)
+    print('-' * 40)
+    I_HAVE_BEEN_CALLED[0] = True
+    return t2
 
 
-    # display most commonly used end station
-
-
-    # display most frequent combination of start station and end station trip
-
-
-    print("\nThis took %s seconds." % (time.time() - start_time))
-    print('-'*40)
-
-
-def trip_duration_stats(df):
+def trip_duration_stats(df, city, month, day):
     """Displays statistics on the total and average trip duration."""
 
-    print('\nCalculating Trip Duration...\n')
+    print('\n* Calculating Trip Duration...\n')
     start_time = time.time()
 
-    # display total travel time
+    if month == 'all' and day == 'all':
+        print(f'Filters: City->{city}, Month->all, Day->all\n')
+    elif month == 'all':
+        print(f'Filters: City->{city}, Month->all, Day->{DAYS[df["day_of_week"].mode()[0] - 1]}\n')
+    elif day == 'all':
+        print(f'Filters: City->{city}, Month->{MONTHS[df["month"].mode()[0] - 1]}, Day->all\n')
+    else:
+        print(f'Filters: City->{city}, Month->{MONTHS[df["month"].mode()[0] - 1]}, Day->{DAYS[df["day_of_week"].mode()[0] - 1]}\n')
+
+    # TO DO: display total travel time
+    print(f'Total travel time\t: {df["Trip Duration"].sum()}')
+
+    # TO DO: display mean travel time
+    print(f'Mean travel time\t: {df["Trip Duration"].mean()}')
+
+    t3 = time.time() - start_time
+    print("\nThis took %s seconds." % t3)
+    print('-' * 40)
+    I_HAVE_BEEN_CALLED[1] = True
+    return t3
 
 
-    # display mean travel time
-
-
-    print("\nThis took %s seconds." % (time.time() - start_time))
-    print('-'*40)
-
-
-def user_stats(df):
+def user_stats(df, city, month, day):
     """Displays statistics on bikeshare users."""
 
-    print('\nCalculating User Stats...\n')
+    print('\n* Calculating User Stats...\n')
     start_time = time.time()
 
-    # Display counts of user types
+    if month == 'all' and day == 'all':
+        print(f'Filters: City->{city}, Month->all, Day->all\n')
+    elif month == 'all':
+        print(f'Filters: City->{city}, Month->all, Day->{DAYS[df["day_of_week"].mode()[0] - 1]}\n')
+    elif day == 'all':
+        print(f'Filters: City->{city}, Month->{MONTHS[df["month"].mode()[0] - 1]}, Day->all\n')
+    else:
+        print(
+            f'Filters: City->{city}, Month->{MONTHS[df["month"].mode()[0] - 1]}, Day->{DAYS[df["day_of_week"].mode()[0] - 1]}\n')
 
+    # TO DO: Display counts of user types
+    print(f'User types:\nSubscriber\t: {df[df["User Type"] == "Subscriber"]["User Type"].count()}')
+    print(f'Customer\t: {df[df["User Type"] == "Customer"]["User Type"].count()}')
 
-    # Display counts of gender
+    if city != 'washington':
+        # TO DO: Display counts of gender
+        print(f'\nGender:\nMale\t: {df[df["Gender"] == "Male"]["Gender"].count()}')
+        print(f'Female\t: {df[df["Gender"] == "Female"]["Gender"].count()}\n')
 
+        # TO DO: Display earliest, most recent, and most common year of birth
+        print(f'Earliest year of birth\t\t: {df["Birth Year"].min()}')
+        print(f'Latest year of birth\t\t: {df["Birth Year"].max()}')
+        print(f'Most common year of birth\t: {df["Birth Year"].mode()[0]}')
 
-    # Display earliest, most recent, and most common year of birth
-
-
-    print("\nThis took %s seconds." % (time.time() - start_time))
-    print('-'*40)
+    t4 = time.time() - start_time
+    print("\nThis took %s seconds." % t4)
+    print('-' * 40)
+    I_HAVE_BEEN_CALLED[2] = True
+    return t4
 
 
 def main():
@@ -123,15 +231,40 @@ def main():
         city, month, day = get_filters()
         df = load_data(city, month, day)
 
-        time_stats(df)
-        station_stats(df)
-        trip_duration_stats(df)
-        user_stats(df)
+        t1 = time_stats(df, city, month, day)
 
-        restart = input('\nWould you like to restart? Enter yes or no.\n')
+        t2, t3, t4, restart = 0, 0, 0, 'no'
+
+        while True:
+            print('* if you want to see more stats type \"next\"...')
+            print('* if you want to restart type \"yes\"...')
+            print('* if you want to exit type \"no\"...')
+            status = input().lower().strip()
+            print('-' * 40)
+            if status == 'next':
+                if not I_HAVE_BEEN_CALLED[0]:
+                    t2 = station_stats(df, city, month, day)
+                    continue
+                elif not I_HAVE_BEEN_CALLED[1]:
+                    t3 = trip_duration_stats(df, city, month, day)
+                    continue
+                elif not I_HAVE_BEEN_CALLED[2]:
+                    t4 = user_stats(df, city, month, day)
+                    break
+            elif status == 'yes':
+                restart = 'yes'
+                break
+            elif status == 'no':
+                print(f"\n{'-' * 40}\nTotal time is {t1 + t2 + t3 + t4} seconds.\n{'-' * 40}")
+                exit(0)
+
+        print(f"\nTotal time is {t1 + t2 + t3 + t4} seconds.\n{'-' * 40}")
+        if restart == 'no':
+            restart = input('\nWould you like to restart? Enter yes or no.\n')
         if restart.lower() != 'yes':
             break
+        I_HAVE_BEEN_CALLED[0:3] = False, False, False
 
 
 if __name__ == "__main__":
-	main()
+    main()
